@@ -63,8 +63,9 @@ fn download_array(input: Vec<String>) -> usize {
 			});
 		}
 	});
-	//Add a newline after our input is done.
-	println!("");
+	//There are some cases where the 100% dialog is overwritten by a 99% dialog.
+	//This is a cosmetic fix, as by the time we reach this we're 100% done anyways.
+	println!("\r100% downloaded");
 
 	return count;
 }
@@ -85,10 +86,16 @@ pub fn get_vod(vod: &str, quality: usize) {
 	let info_json = Json::from_str(&*info_raw).unwrap();
 	let info = info_json.as_object().unwrap();
 
+//	I'm like 80% sure that highlight and archive have the same m3u8 file.
+	let quality_list: [&str; 6] = match info["broadcast_type"].as_string().unwrap() {
+		"archive" 	=> ["chunked","high","medium","low","mobile","audio_only"],
+		"highlight"	=> ["chunked","high","medium","low","mobile","audio_only"],
+		"upload" 	=> ["720p","480p","360p","240p","144p","audio_only"],
+		_ => { panic!("This shouldn't happen -> quality_list match"); },
+	};
+
 	let filename = format!("{}.mp4",sanitize_filename(info["title"].as_string().unwrap()));
 
-	//For quality, 0 = highest [Chunked], 4 = lowest [mobile], 5 = audio_only (not really supported?)
-	let quality_list: [&str; 6] = ["chunked","high","medium","low","mobile","audio_only"];
 	let word: &str = quality_list[quality];
 	let word_len = word.chars().count()+1;
 
@@ -115,7 +122,7 @@ pub fn get_vod(vod: &str, quality: usize) {
 //	https://github.com/rust-lang/rust/issues/30098
 	let child = Command::new("ffmpeg")
 		.args(&["-loglevel","panic","-hide_banner","-stats","-f","concat","-i","toffmpeg.txt","-c","copy","-bsf:a","aac_adtstoasc"])
-		.arg(filename)
+		.arg(&filename)
 		.stdout(Stdio::piped())
 		.spawn()
 		.unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
@@ -135,5 +142,5 @@ pub fn get_vod(vod: &str, quality: usize) {
 	}
 	let _ = fs::remove_file("toffmpeg.txt");
 
-	println!("Finished!");
+	println!("Finished! Output file: '{}'",filename);
 }

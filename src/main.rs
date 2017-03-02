@@ -43,6 +43,8 @@ fn main() {
 		_ => { println!("Invalid quality argument, run --help"); process::exit(2);},
 	};
 
+	// This is a lazy search for the twitch VOD id.
+	// It appears numeric, so we search for a string containing a large number.
 	let mut num: Result<u32, std::num::ParseIntError>;
 	let mut source: &str = "";
 	let source_iter = args.arg_source.split("/");
