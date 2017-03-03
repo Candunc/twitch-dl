@@ -1,3 +1,4 @@
+use std::f32;
 use std::io::Read;
 use std::io::Write;
 use std::io::stdout;
@@ -5,6 +6,7 @@ use std::fs;
 use std::fs::File;
 use std::process::Command;
 use std::process::Stdio;
+use std::time::Instant;
 
 use rustc_serialize::json::Json;
 use scoped_threadpool::Pool;
@@ -44,8 +46,10 @@ fn vod_m3u8(vod: &str) -> String {
 }
 
 fn download_array(input: Vec<String>) -> usize {
+	let start = Instant::now();
 	let mut count: usize = 0;
 	let divisor = input.len();
+
 	print!("0% complete");
 //	The number here is threads to use.
 	let mut f = File::create("toffmpeg.txt").unwrap();
@@ -59,13 +63,18 @@ fn download_array(input: Vec<String>) -> usize {
 			scope.execute(move || {
 				let name = format!("chunk_{}.ts",count);
 				let _ = https::to_file(url,name);
-				print!("\r{}% downloaded",((count*100)/divisor) as i8);
+
+				print!("\r{}% downloaded - {} seconds remaining                           ",
+					(count*100)/divisor,
+				//	There's probably a better way than to cast f32 every single time.
+					((start.elapsed().as_secs() as f32 / count as f32) * (divisor-count) as f32) as u8
+				);
 			});
 		}
 	});
 	//There are some cases where the 100% dialog is overwritten by a 99% dialog.
 	//This is a cosmetic fix, as by the time we reach this we're 100% done anyways.
-	println!("\r100% downloaded");
+	println!("\r100% downloaded                                             ");
 
 	return count;
 }
@@ -95,6 +104,8 @@ pub fn get_vod(vod: &str, quality: usize) {
 	};
 
 	let filename = format!("{}.mp4",sanitize_filename(info["title"].as_string().unwrap()));
+
+	println!("Preparing to download '{}'",filename);
 
 	let word: &str = quality_list[quality];
 	let word_len = word.chars().count()+1;
