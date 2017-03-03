@@ -67,7 +67,7 @@ fn download_array(input: Vec<String>) -> usize {
 				print!("\r{}% downloaded - {} seconds remaining                           ",
 					(count*100)/divisor,
 				//	There's probably a better way than to cast f32 every single time.
-					((start.elapsed().as_secs() as f32 / count as f32) * (divisor-count) as f32) as u8
+					((start.elapsed().as_secs() as f32 / count as f32) * (divisor-count) as f32) as usize
 				);
 			});
 		}
