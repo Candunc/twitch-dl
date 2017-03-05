@@ -6,6 +6,8 @@ extern crate docopt;
 
 use docopt::Docopt;
 use std::process;
+use std::process::Command;
+use std::env::consts::OS;
 
 mod https;
 mod twitch;
@@ -13,6 +15,7 @@ mod twitch;
 /* Exit Codes:
 1: Missing arguments
 2: Invalid arguments
+3: Missing dependency
 */
 
 const USAGE: &'static str = "
@@ -27,6 +30,8 @@ struct Args {
 }
 
 fn main() {
+	verify_deps();
+
 	let args: Args = Docopt::new(USAGE)
 		.and_then(|d| d.decode())
 		.unwrap_or_else(|e| e.exit());
@@ -61,4 +66,25 @@ fn main() {
 		process::exit(2);
 	}
 	twitch::get_vod(source,quality);
+}
+
+//	Do not return value as we exit on failure.
+fn verify_deps() {
+	let name: &str = match OS {
+		"windows"	=> "where.exe",
+		"linux"		=> "which",
+		"macos"		=> "which",
+		_			=> { panic!(format!("Unsupported operating system! File an error report -> main.rs/verify_deps {}",OS)); }
+	};
+
+	let output = Command::new(name)
+		.arg("ffmpeg")
+		.output()	//Grab output to suppress stdout & stderr
+		.unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
+	let status = output.status.code().unwrap();
+
+	if status != 0 {
+		println!("Could not find ffmpeg installed! Please install it and try again.");
+		process::exit(3);
+	}
 }

@@ -100,7 +100,7 @@ pub fn get_vod(vod: &str, quality: usize) {
 		"archive" 	=> ["chunked","high","medium","low","mobile","audio_only"],
 		"highlight"	=> ["chunked","high","medium","low","mobile","audio_only"],
 		"upload" 	=> ["720p","480p","360p","240p","144p","audio_only"],
-		_ => { panic!("This shouldn't happen -> quality_list match"); },
+		_ => { panic!("This shouldn't happen -> twitch.ts/quality_list match"); },
 	};
 
 	let filename = format!("{}.mp4",sanitize_filename(info["title"].as_string().unwrap()));
