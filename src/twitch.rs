@@ -13,6 +13,9 @@ use scoped_threadpool::Pool;
 
 use https;
 
+//Todo: Take number of threads as an argument.
+const THREADS: u32 = 4;
+
 fn m3u8_to_vector(data: String) -> Vec<String> {
 	let m3u8_split = data.split("\n");
 
@@ -45,16 +48,26 @@ fn vod_m3u8(vod: &str) -> String {
 	return url;
 }
 
+//	Takes seconds and turns it into the largest fraction of time, up to hours.
+fn format_time(input: usize) -> String {
+	if input > 3600 {
+		// This _should_ trim to one decimal digit
+		return format!("~{} hours",(input/3600) as f32 / 10.0);
+	} else if input > 60 {
+		return format!("~{} minutes",input/60);
+	} else {
+		return format!("{} seconds",input);
+	}
+}
+
 fn download_array(input: Vec<String>) -> usize {
 	let start = Instant::now();
 	let mut count: usize = 0;
 	let divisor = input.len();
 
 	print!("0% complete");
-//	The number here is threads to use.
 	let mut f = File::create("toffmpeg.txt").unwrap();
-//	This averages ~12Mb/s on quality low
-	let mut pool = Pool::new(4);
+	let mut pool = Pool::new(THREADS);
 
 	pool.scoped(|scope| {
 		for url in input {
@@ -64,10 +77,10 @@ fn download_array(input: Vec<String>) -> usize {
 				let name = format!("chunk_{}.ts",count);
 				let _ = https::to_file(url,name);
 
-				print!("\r{}% downloaded - {} seconds remaining                           ",
+				print!("\r{}% downloaded - {} remaining                           ",
 					(count*100)/divisor,
 				//	There's probably a better way than to cast f32 every single time.
-					((start.elapsed().as_secs() as f32 / count as f32) * (divisor-count) as f32) as usize
+					format_time(((start.elapsed().as_secs() as f32 / count as f32) * (divisor-count) as f32) as usize)
 				);
 			});
 		}
